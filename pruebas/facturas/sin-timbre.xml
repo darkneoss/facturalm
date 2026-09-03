@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4"
+                  xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital"
+                  Version="4.0" Serie="DEMO" Folio="1003"
+                  Fecha="2026-01-25T10:00:00" SubTotal="500.00"
+                  Total="580.00" Moneda="MXN" TipoDeComprobante="I"
+                  MetodoPago="PUE" FormaPago="03" LugarExpedicion="64000"
+                  Exportacion="01">
+  <cfdi:Emisor Rfc="EKU9003173C9" Nombre="ESCUELA KEMPER URGATE SA DE CV"
+               RegimenFiscal="601"/>
+  <cfdi:Receptor Rfc="XAXX010101000" Nombre="PUBLICO EN GENERAL"
+                 DomicilioFiscalReceptor="64000" RegimenFiscalReceptor="616"
+                 UsoCFDI="D10"/>
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="01010101" Cantidad="1" ClaveUnidad="E48"
+                   Descripcion="Colegiatura enero" ValorUnitario="500.00"
+                   Importe="500.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="500.00" Impuesto="002" TipoFactor="Tasa"
+                         TasaOCuota="0.160000" Importe="80.00"/>
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Impuestos TotalImpuestosTrasladados="80.00">
+    <cfdi:Traslados>
+      <cfdi:Traslado Base="500.00" Impuesto="002" TipoFactor="Tasa"
+                     TasaOCuota="0.160000" Importe="80.00"/>
+    </cfdi:Traslados>
+  </cfdi:Impuestos>
+</cfdi:Comprobante>
