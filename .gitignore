@@ -1,0 +1,38 @@
+# ---------------------------------------------------------------------------
+# Datos fiscales reales: NUNCA al repositorio.
+# Se ignora por extension en todo el arbol y al final se exceptuan las
+# facturas sinteticas de pruebas/. Un XML o PDF real que caiga en cualquier
+# otra carpeta queda excluido por omision.
+# ---------------------------------------------------------------------------
+*.xml
+*.pdf
+*.xlsx
+*.csv
+*.pendientes.json
+
+# Carpetas de trabajo con facturas reales.
+# Ojo: van ancladas con "/" inicial. Sin ancla, "facturas/" tambien casaria
+# con "pruebas/facturas/", y git no puede re-incluir archivos que estan
+# dentro de un directorio excluido: las excepciones de abajo dejarian de
+# funcionar en silencio.
+/facturas/
+/ejemplos/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# SO / editor
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
+
+# ---------------------------------------------------------------------------
+# Excepciones, al final para que ganen: fixtures generadas por
+# pruebas/generar.py. Datos ficticios con los RFC genericos del SAT.
+# ---------------------------------------------------------------------------
+!pruebas/facturas/*.xml
+!pruebas/facturas/*.pdf
