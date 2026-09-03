@@ -1,0 +1,20 @@
+# Núcleo
+lxml>=4.9
+openpyxl>=3.1
+
+# Clasificación y extracción posicionada de PDF (Rust vía PyO3).
+# Da el veredicto de si hace falta OCR y los TextItem con coordenadas.
+pdf-inspector>=1.17
+
+# Segundo lector de PDF. No es solo respaldo: arbitra cuando el texto
+# posicionado rompe los acentos, cosa que pasa en facturas reales.
+pdfplumber>=0.10
+
+# Render de páginas, solo para la ruta OCR
+pypdfium2>=4.0
+
+# OCR de PDFs escaneados e imágenes sueltas. Requiere ADEMÁS el binario
+# Tesseract del sistema:
+#   winget install UB-Mannheim.TesseractOCR   (incluir idioma 'spa')
+# pytesseract>=0.3.10
+# pillow>=10.0          # solo para la ruta de imagen suelta
