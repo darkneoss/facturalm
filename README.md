@@ -110,6 +110,10 @@ Ver [SKILL.md](SKILL.md) para el flujo completo, incluido el handoff de los PDFs
 sin XML, y [referencia/columnas.md](referencia/columnas.md) para el mapeo de
 cada columna al CFDI.
 
-## Licencias
+## Licencia
 
-Ver [LICENSES.md](LICENSES.md).
+[MIT](LICENSE) © darkneoss. Úsalo, modifícalo y redistribúyelo libremente.
+
+Este repositorio no incluye código de terceros: pdf-inspector entra por pip y
+Tesseract se instala aparte. Ver [DEPENDENCIAS.md](DEPENDENCIAS.md) para el
+detalle y sus licencias.
