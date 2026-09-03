@@ -1,0 +1,18 @@
+# Normalizacion de fin de linea.
+#
+# Con core.autocrlf=true (default en Windows) git convierte LF a CRLF al
+# hacer checkout. En un PDF eso inyecta bytes CR y rompe los offsets del
+# xref: la fixture de pruebas pasaba de 1796 a 1864 bytes al clonar, y
+# pdf-inspector ya no podia leerla. pdfplumber la toleraba, asi que la
+# suite seguia en verde y la corrupcion no se veia.
+* text=auto
+
+# Binarios: git no debe tocarlos nunca.
+*.pdf   binary
+*.xlsx  binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.tif   binary
+*.tiff  binary
+*.wasm  binary
