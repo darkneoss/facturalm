@@ -18,6 +18,11 @@
 /facturas/
 /ejemplos/
 
+# Datos de idioma de Tesseract. diagnostico.py --instalar-spa los deja aqui
+# cuando el tessdata del sistema no es escribible (tipico si Tesseract quedo
+# en Program Files). Son ~20 MB por idioma y no son nuestros.
+/tessdata/
+
 # Python
 __pycache__/
 *.py[cod]
