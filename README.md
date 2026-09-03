@@ -32,6 +32,19 @@ lo ya procesado ni llevar una lista aparte.
 
 ## Instalación
 
+**1. Coloca la carpeta donde tu agente busca skills.**
+
+| Agente | Ubicación |
+|---|---|
+| Claude Code | `~/.claude/skills/facturalm/` (o el repo en el proyecto) |
+| Hermes | Bajo `~/.hermes/plugins/…/skills/facturalm/`; se invoca con `skill_view("facturalm")` |
+| Otros | Cualquier ruta; basta con que el agente pueda leer `SKILL.md` |
+
+Un agente sin descubrimiento de skills funciona igual: dile que lea `SKILL.md`
+y siga las instrucciones de ahí.
+
+**2. Instala las dependencias.**
+
 ```bash
 pip install -r scripts/requirements.txt
 python scripts/diagnostico.py
@@ -51,14 +64,46 @@ Opcional, para PDFs escaneados e imágenes: Tesseract OCR con el paquete de idio
 python pruebas/correr.py
 ```
 
-Once comprobaciones de punta a punta contra facturas sintéticas
+Veinte comprobaciones de punta a punta contra facturas sintéticas
 (`pruebas/facturas/`, datos ficticios con los RFC genéricos del SAT). El
 repositorio no contiene ninguna factura real.
 
 ## Uso
 
+No está pensada para correrla a mano. Le hablas al agente:
+
+> Voy a ir dejando las facturas en `~/facturas/2026`. Sácame la info a un Excel.
+
+El agente corre `procesar.py`, y ahí se bifurca:
+
+- **Las facturas con XML entran solas.** Es determinista, el modelo no
+  interviene: parsear un CFDI no es un trabajo para un LLM.
+- **Un PDF o imagen sin XML se detiene y te lo pasa.** El script extrae el
+  texto (OCR si hace falta) y el agente saca los campos de ahí. Esas filas
+  quedan marcadas `_confianza: revisar`.
+
+Después basta con:
+
+> Ya dejé más facturas, actualiza el Excel.
+
+Solo entran las nuevas. Las que ya estaban se omiten por UUID, así que puedes
+repetirlo sin pensar en cuáles procesaste antes.
+
+Otras cosas que puedes pedirle:
+
+- *"¿Cuadran los totales del Excel?"* — corre `verificar.py`, que comprueba
+  `Subtotal − Descuento + Trasladados − Retenidos = Total` en cada fila. Útil
+  sobre todo para las filas que salieron de un PDF.
+- *"Esta factura solo la tengo en PDF, aquí está la ruta."*
+- *"Corrige el concepto de la fila 4, el OCR lo leyó mal."*
+
+### A mano
+
+Si prefieres el CLI directo:
+
 ```bash
 python scripts/procesar.py <carpeta-de-facturas> --excel salida.xlsx
+python scripts/verificar.py salida.xlsx
 ```
 
 Ver [SKILL.md](SKILL.md) para el flujo completo, incluido el handoff de los PDFs
