@@ -1,8 +1,8 @@
 # Las columnas y su origen en el CFDI 4.0
 
-Replican `buildExportRows()` de ExtFact para que el
-Excel sea comparable con el que genera ExtFact, **más `Descuento`**, que ExtFact
-no exporta y sin el cual las cifras no cuadran.
+Una fila por factura. El orden está fijado para que el Excel sea estable entre
+corridas: si cambias el orden, los archivos ya generados dejan de coincidir
+columna por columna con los nuevos.
 
 | # | Columna | Origen en el XML |
 |---|---|---|
@@ -35,7 +35,7 @@ Más tres columnas de control propias de esta skill: `_origen` (XML/PDF),
 Los totales se leen del `<cfdi:Impuestos>` que es **hijo directo** del
 Comprobante. Una búsqueda recursiva devolvería los `<Impuestos>` de un
 Concepto y daría cifras equivocadas — es el motivo de `_hijo_directo()` en
-`cfdi_xml.py`, y por el que ExtFact usa su propio `directChild()`.
+`cfdi_xml.py`.
 
 Si los atributos globales faltan, se suman los `Importe` a nivel concepto.
 
@@ -46,11 +46,12 @@ deducciones personales e I01–I08 las inversiones; (2) palabras clave sobre el
 Concepto normalizado sin acentos; (3) fallback `G01 → mercancías`,
 `G03 → servicios`, y si no, `otros`.
 
-## Diferencia con ExtFact
+## Por qué `Descuento` tiene columna propia
 
-ExtFact no exporta `Descuento`, así que su Excel no cuadra en facturas que lo
-traen (una de las de prueba descuenta 22,049.28 sobre un subtotal de 28,800).
-Aquí sí se captura, y la identidad que debe cumplirse es:
+Es opcional en el CFDI y muchas herramientas lo omiten, pero sin él las
+cifras no cuadran: una factura de prueba descontaba 22,049.28 sobre un
+subtotal de 28,800, y nada en el Excel lo delataba. La identidad que debe
+cumplirse es:
 
     Subtotal − Descuento + Trasladados − Retenidos = Total
 

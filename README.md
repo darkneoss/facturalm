@@ -9,15 +9,15 @@ cuando hay un PDF sin XML.
 
 ## Qué resuelve
 
-Nace de dos aplicaciones web internas —**ExtFact** (CFDI XML → Excel) y
-**OCRExtracTesseract** (PDF → texto)— que no se incluyen en este repositorio.
-Cubrían mitades inconexas: una parsea CFDI XML pero regenera el Excel desde
-cero cada vez, la otra saca texto de PDFs pero no estructura nada. Esta skill
-une ambas y agrega lo que faltaba: **acumulación idempotente**.
+Capturar facturas es un trabajo que nunca termina: llegan de a poco, unas con
+XML y otras solo en PDF, y el Excel de siempre hay que volver a llenarlo. Las
+herramientas que convierten CFDI a Excel suelen regenerar el archivo desde
+cero, así que no puedes ir agregando: cada corrida empieza de nuevo y pierdes
+lo que anotaste a mano.
 
-Las referencias a `ExtFact` y `OCRExtracTesseract` en el código documentan de
-dónde salió cada decisión; el razonamiento se explica solo, no hace falta tener
-esas apps a la mano.
+Aquí el Excel es acumulativo. Dejas las facturas en una carpeta, corres el
+script, y solo entran las nuevas. El Excel es el registro: no hace falta mover
+lo ya procesado ni llevar una lista aparte.
 
 - Re-procesar la misma carpeta agrega 0 filas (clave: UUID del Timbre Fiscal).
 - Un PDF cuya factura ya entró por XML se detecta como duplicado.

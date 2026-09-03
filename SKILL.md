@@ -91,8 +91,7 @@ incompleta y marcada es útil; una fila inventada corrompe la contabilidad.
 }
 ```
 
-Las columnas replican el Excel de ExtFact más `Descuento`, que ExtFact no
-exporta. Ver `referencia/columnas.md` para el origen de cada una en el CFDI.
+Ver `referencia/columnas.md` para el origen de cada columna en el CFDI.
 
 ## Scripts
 
@@ -133,7 +132,8 @@ Para comprobar que la skill entera sigue funcionando tras un cambio:
 
 ## Limitaciones conocidas
 
-- **No verifica el sello digital.** Eso vive en ExtFact (`buildCadenaOriginal`).
+- **No verifica el sello digital** del SAT. Se captura lo que la factura dice;
+  no se comprueba que la firma sea válida.
 - Una fila por factura: los conceptos se concatenan, no se desglosan.
 - CFDI 4.0 únicamente.
 
