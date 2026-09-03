@@ -67,6 +67,11 @@ lógica de deduplicación, agrega la comprobación correspondiente ahí.
   no lo agrega al PATH; `ruta_tesseract()` revisa además las rutas habituales
   y `$TESSERACT_CMD`. Simplificarlo a `which()` lo daría por ausente estando
   instalado.
+- **`emparejar()` agrupa por (carpeta, nombre), no por nombre.** Dos facturas
+  homónimas en años distintos no deben emparejarse entre sí.
+- **`pendientes.json` escribe `_ruta` con `/` aunque sea Windows.** El agente
+  copia ese valor a un JSON que escribe a mano, y `\` produce escapes
+  inválidos que rompen el parseo. Pasó en una instalación real.
 - **`idiomas_ocr()` degrada a `eng` si falta `spa`.** Pedir un idioma que no
   está en `tessdata` aborta el OCR con un error de Tesseract; es mejor un OCR
   peor que ninguno. Fija `tesseract_cmd` antes de preguntar: sin eso reporta

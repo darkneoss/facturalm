@@ -97,6 +97,38 @@ def main():
         check("cuenta acentos correctamente", pdf_texto._acentos(sano) == 3,
               pdf_texto._acentos(sano))
 
+        # Un RFC mal leido por OCR no solo ensucia el dato: rompe la clave
+        # rfc|fecha|importe con la que se deduplican las filas sin UUID.
+        # Solo se usan RFC de prueba del SAT; nunca uno real.
+        print("\nValidacion de RFC")
+        import catalogos as _cat
+        check("acepta el RFC de pruebas del SAT",
+              _cat.rfc_valido("EKU9003173C9") is True)
+        check("acepta los genericos (XAXX/XEXX)",
+              _cat.rfc_valido("XAXX010101000") is True
+              and _cat.rfc_valido("XEXX010101000") is True)
+        check("rechaza un digito verificador alterado",
+              _cat.rfc_valido("EKU9003173C8") is False)
+        check("no juzga lo que no es un RFC",
+              _cat.rfc_valido("Sin RFC") is None and _cat.rfc_valido("") is None)
+
+        # La gente organiza las facturas por ano. Apuntar a la carpeta padre
+        # tiene que funcionar, y dos archivos homonimos en anos distintos no
+        # deben emparejarse entre si.
+        print("\nCarpetas anidadas")
+        anidado = os.path.join(tmp, "entrantes")
+        for anio in ("2025", "2026"):
+            os.makedirs(os.path.join(anidado, anio), exist_ok=True)
+        shutil.copy(xmls[0], os.path.join(anidado, "2025", "A100.xml"))
+        shutil.copy(huerfanos[0], os.path.join(anidado, "2026", "A100.pdf"))
+        x2, h2 = procesar.emparejar(anidado)
+        check("entra a las subcarpetas", len(x2) == 1 and len(h2) == 1,
+              (len(x2), len(h2)))
+        check("no empareja homonimos de anos distintos",
+              h2 and h2[0].endswith("A100.pdf"))
+        x3, h3 = procesar.emparejar(anidado, recursivo=False)
+        check("--sin-recursion se queda en un nivel", not x3 and not h3)
+
         print("\nRuta OCR")
         if not pdf_texto.ruta_tesseract():
             print("  %-46s OMITIDA (Tesseract no instalado)" % "OCR de imagen")

@@ -190,8 +190,27 @@ def ruta_tesseract():
     return None
 
 
+def _usar_tessdata_propio():
+    """Apunta TESSDATA_PREFIX al tessdata de la skill si existe.
+
+    Cuando Tesseract quedo instalado en Program Files, su tessdata no se
+    puede escribir sin elevacion y diagnostico.py --instalar-spa deja los
+    idiomas en <skill>/tessdata. Se apunta aqui, en el proceso, para no
+    depender de una variable de entorno persistente ni de abrir una sesion
+    nueva. No se pisa un TESSDATA_PREFIX que el usuario ya haya puesto.
+    """
+    if os.environ.get("TESSDATA_PREFIX"):
+        return
+    propio = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "..", "tessdata")
+    propio = os.path.normpath(propio)
+    if os.path.isdir(propio) and os.listdir(propio):
+        os.environ["TESSDATA_PREFIX"] = propio
+
+
 def _exigir_tesseract():
     """Tesseract es un binario del sistema, no un paquete de Python."""
+    _usar_tessdata_propio()
     ruta = ruta_tesseract()
     if not ruta:
         raise SinTextoError(
@@ -214,6 +233,7 @@ def idiomas_ocr():
     """
     try:
         import pytesseract
+        _usar_tessdata_propio()
         # Fijar el binario ANTES de preguntar: si Tesseract no esta en el PATH
         # (lo normal en Windows), pytesseract falla y degradariamos a 'eng'
         # aunque el paquete de espanol si este instalado.

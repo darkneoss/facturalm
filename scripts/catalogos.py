@@ -165,3 +165,59 @@ def etiqueta_tipo(code):
 
 def etiqueta_categoria(cat):
     return CATEGORIAS.get(cat, "Sin clasificar")
+
+
+# ==========================================================================
+# Validacion de RFC
+# ==========================================================================
+
+_RFC_VALORES = {}
+for _i, _c in enumerate("0123456789"):
+    _RFC_VALORES[_c] = _i
+for _i, _c in enumerate("ABCDEFGHIJKLMN"):
+    _RFC_VALORES[_c] = 10 + _i
+_RFC_VALORES["&"] = 24
+for _i, _c in enumerate("OPQRSTUVWXYZ"):
+    _RFC_VALORES[_c] = 25 + _i
+_RFC_VALORES[" "] = 37
+_RFC_VALORES["\u00d1"] = 38
+
+# El SAT exceptua sus RFC genericos del digito verificador.
+RFC_GENERICOS = {"XAXX010101000", "XEXX010101000"}
+
+
+def rfc_valido(rfc):
+    """Comprueba el digito verificador del RFC.
+
+    Existe por un error real de OCR: la 'Z' de la homoclave se leyo como '2'
+    y el dato se reporto como legible. Un RFC mal leido no solo ensucia el
+    Excel: como las filas sin UUID se deduplican por rfc|fecha|importe,
+    tambien rompe la clave y permite que la misma factura entre dos veces.
+
+    Ejemplo con el RFC de pruebas del SAT: EKU9003173C9 es valido y
+    EKU9003173C8 no.
+
+    Devuelve True/False, o None si el valor no tiene forma de RFC (vacio,
+    marcadores como 'Sin RFC') y por tanto no hay nada que validar.
+    """
+    if not rfc:
+        return None
+    r = str(rfc).upper().strip()
+    if r in RFC_GENERICOS:
+        return True
+    if len(r) not in (12, 13):
+        return None
+    relleno = (" " + r) if len(r) == 12 else r
+    suma = 0
+    for i, c in enumerate(relleno[:12]):
+        if c not in _RFC_VALORES:
+            return None
+        suma += _RFC_VALORES[c] * (13 - i)
+    resto = suma % 11
+    if resto == 0:
+        esperado = "0"
+    elif resto == 1:
+        esperado = "A"
+    else:
+        esperado = str(11 - resto)
+    return relleno[12] == esperado

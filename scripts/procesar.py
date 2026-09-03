@@ -23,18 +23,33 @@ import excel_merge
 import pdf_texto
 
 
-def emparejar(carpeta):
+def emparejar(carpeta, recursivo=True):
     """Devuelve (xmls, huerfanos) agrupando por nombre base.
 
     Huerfano = documento sin su XML al lado: un PDF, o una imagen suelta
     (factura fotografiada o escaneada). Si el XML existe, gana siempre.
+
+    Recorre subcarpetas por defecto: la gente organiza las facturas por ano
+    (entrantes/2025/, entrantes/2026/) y apuntar a la carpeta padre tiene que
+    funcionar. Con recursivo=False se queda en un solo nivel.
+
+    El emparejamiento es POR CARPETA, no global: dos archivos que se llamen
+    igual en anos distintos (2025/A100.xml y 2026/A100.pdf) son facturas
+    distintas y no deben emparejarse entre si.
     """
     bases = {}
-    for nombre in sorted(os.listdir(carpeta)):
-        raiz, ext = os.path.splitext(nombre)
-        ext = ext.lower()
-        if ext == ".xml" or ext == ".pdf" or ext in pdf_texto.EXT_IMAGEN:
-            bases.setdefault(raiz, {})[ext] = os.path.join(carpeta, nombre)
+    if recursivo:
+        recorrido = os.walk(carpeta)
+    else:
+        recorrido = [(carpeta, [], os.listdir(carpeta))]
+
+    for raiz_dir, _, archivos in recorrido:
+        for nombre in sorted(archivos):
+            raiz, ext = os.path.splitext(nombre)
+            ext = ext.lower()
+            if ext == ".xml" or ext == ".pdf" or ext in pdf_texto.EXT_IMAGEN:
+                clave = (raiz_dir, raiz)
+                bases.setdefault(clave, {})[ext] = os.path.join(raiz_dir, nombre)
 
     xmls, huerfanos = [], []
     for v in bases.values():
@@ -43,7 +58,8 @@ def emparejar(carpeta):
             continue
         # Sin XML: el PDF tiene prioridad sobre la imagen del mismo nombre,
         # porque puede traer capa de texto y evitar el OCR.
-        otros = [v[e] for e in (".pdf",) if e in v] or                 [v[e] for e in pdf_texto.EXT_IMAGEN if e in v]
+        otros = ([v[e] for e in (".pdf",) if e in v]
+                 or [v[e] for e in pdf_texto.EXT_IMAGEN if e in v])
         if otros:
             huerfanos.append(otros[0])
     return sorted(xmls), sorted(huerfanos)
@@ -58,13 +74,15 @@ def main():
                         "(default: <excel>.pendientes.json)")
     p.add_argument("--actualizar", action="store_true")
     p.add_argument("--forzar-ocr", action="store_true")
+    p.add_argument("--sin-recursion", action="store_true",
+                   help="no entrar a subcarpetas (por defecto si entra)")
     args = p.parse_args()
 
     if not os.path.isdir(args.carpeta):
         print("ERROR: no es una carpeta: %s" % args.carpeta, file=sys.stderr)
         sys.exit(2)
 
-    xmls, huerfanos = emparejar(args.carpeta)
+    xmls, huerfanos = emparejar(args.carpeta, recursivo=not args.sin_recursion)
 
     # --- Ruta XML: determinista, sin el modelo ---
     filas, errores = [], []
@@ -84,7 +102,11 @@ def main():
         try:
             texto, meta = pdf_texto.extraer_texto(ruta, args.forzar_ocr)
             pendientes.append({
-                "archivo": os.path.basename(ruta), "_ruta": os.path.abspath(ruta),
+                "archivo": os.path.basename(ruta),
+                # Con barras normales aunque estemos en Windows: el agente
+                # copia este valor a un JSON que escribe a mano, y una ruta
+                # con "\" produce escapes invalidos que rompen el parseo.
+                "_ruta": os.path.abspath(ruta).replace(os.sep, "/"),
                 "metodo": meta["metodo"], "texto": texto,
             })
         except pdf_texto.SinTextoError as e:

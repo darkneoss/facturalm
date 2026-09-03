@@ -86,6 +86,18 @@ def revisar_ocr():
     return binario
 
 
+def _se_puede_escribir(carpeta):
+    """Prueba real de escritura. os.access miente en Windows."""
+    prueba = os.path.join(carpeta, ".facturalm-escritura")
+    try:
+        with open(prueba, "w"):
+            pass
+        os.remove(prueba)
+        return True
+    except OSError:
+        return False
+
+
 def instalar_spa(binario):
     """Descarga spa.traineddata al tessdata de esta instalacion."""
     if not binario:
@@ -96,6 +108,28 @@ def instalar_spa(binario):
         print("No encontre la carpeta tessdata junto a %s" % binario)
         print("Define TESSDATA_PREFIX y vuelve a intentar.")
         return 1
+
+    # Si Tesseract se instalo en Program Files, su tessdata no se puede
+    # escribir sin elevacion. En vez de fallar (o de pedir que corras esto
+    # como administrador) se usa un tessdata propio dentro de la skill.
+    if not _se_puede_escribir(destino_dir):
+        propio = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "..", "tessdata")
+        propio = os.path.normpath(propio)
+        print("Sin permiso de escritura en %s" % destino_dir)
+        print("Uso un tessdata propio: %s" % propio)
+        os.makedirs(propio, exist_ok=True)
+        # TESSDATA_PREFIX reemplaza la carpeta entera, no la suma: si el
+        # tessdata propio solo tuviera spa, se perderia eng y "spa+eng"
+        # fallaria. Se copian los idiomas que ya estaban.
+        import glob
+        for origen in glob.glob(os.path.join(destino_dir, "*.traineddata")):
+            copia = os.path.join(propio, os.path.basename(origen))
+            if not os.path.exists(copia):
+                shutil.copy2(origen, copia)
+                print("  copiado %s" % os.path.basename(origen))
+        destino_dir = propio
+
     destino = os.path.join(destino_dir, "spa.traineddata")
     if os.path.exists(destino):
         print("Ya existe: %s" % destino)

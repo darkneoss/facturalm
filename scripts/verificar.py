@@ -50,7 +50,8 @@ def verificar(ruta):
     i_desc, i_org = col("Descuento"), col("_origen")
     sin_descuento = i_desc is None
 
-    descuadres, revisadas = [], 0
+    i_rfc, i_rfcr = col("RFC"), col("RFC Receptor")
+    descuadres, rfc_malos, revisadas = [], [], 0
     for n, fila in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
         if not any(fila):
             continue
@@ -65,9 +66,22 @@ def verificar(ruta):
                 "origen": fila[i_org] if i_org is not None else "?",
             })
 
+        # Un RFC con digito verificador malo casi siempre es un error de OCR.
+        # Importa doble: ensucia el dato y rompe la clave sustituta con la que
+        # se deduplican las filas sin UUID.
+        for etiqueta, idx in (("emisor", i_rfc), ("receptor", i_rfcr)):
+            if idx is None:
+                continue
+            if cat.rfc_valido(fila[idx]) is False:
+                rfc_malos.append({
+                    "fila": n, "cual": etiqueta,
+                    "origen": fila[i_org] if i_org is not None else "?",
+                })
+
     return {
         "excel": ruta, "filas_revisadas": revisadas,
-        "descuadres": descuadres, "sin_columna_descuento": sin_descuento,
+        "descuadres": descuadres, "rfc_invalidos": rfc_malos,
+        "sin_columna_descuento": sin_descuento,
     }, None
 
 
@@ -86,9 +100,19 @@ def main():
         print("Aviso: el Excel no tiene columna Descuento; las facturas con "
               "descuento apareceran como descuadre. Vuelve a correr procesar.py "
               "para agregarla.")
+    if res["rfc_invalidos"]:
+        print("\n%d RFC con digito verificador invalido:" % len(res["rfc_invalidos"]))
+        for r in res["rfc_invalidos"]:
+            print("  fila %-4d RFC del %-9s (origen: %s)"
+                  % (r["fila"], r["cual"], r["origen"]))
+        print("Un RFC mal leido rompe la clave que evita duplicados. "
+              "Corrigelo contra el documento.")
+
     if not res["descuadres"]:
-        print("OK: todas las filas cuadran.")
-        return
+        if not res["rfc_invalidos"]:
+            print("OK: todas las filas cuadran.")
+            return
+        sys.exit(1)
     print("\n%d fila(s) no cuadran:" % len(res["descuadres"]))
     for d in res["descuadres"]:
         print("  fila %-4d diferencia %+10.2f  (origen: %s)"

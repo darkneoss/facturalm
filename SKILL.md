@@ -1,6 +1,6 @@
 ---
 name: facturalm
-description: Use when the user wants to extract data from Mexican invoices (CFDI facturas) in XML or PDF form into a spreadsheet — capturar facturas, procesar CFDI, actualizar el Excel de facturas, contabilizar comprobantes fiscales, deducciones. Handles both timbrado XML and PDF-only invoices without requiring vision.
+description: Use when the user hands over a Mexican invoice (CFDI) — XML, PDF, or a photo/scan — to capture into a spreadsheet: capturar facturas, procesar CFDI, actualizar el Excel de facturas, contabilizar comprobantes fiscales, deducciones. Read this BEFORE opening or looking at any invoice file: the skill extracts text with local OCR and must never use vision on the document.
 ---
 
 # facturalm — Facturas (CFDI) a Excel
@@ -9,11 +9,27 @@ Extrae los datos de facturas mexicanas y los **acumula** en un `.xlsx` que
 sobrevive entre corridas. El XML se procesa solo; el PDF necesita que tú leas
 el texto y llenes los campos.
 
-**Funciona sin visión.** Nunca abras el PDF ni la imagen con una herramienta
-visual, ni pidas "ver" la factura: `pdf_texto.py` es la única frontera con el
-documento y su contrato es `documento → texto`. Incluso una factura escaneada
-pasa por OCR local (Tesseract), no por la vista del modelo. Esto mantiene la
-skill utilizable en modelos sin capacidad multimodal.
+## Regla que rompe todo lo demás si la ignoras
+
+**Cuando te den una factura —foto, captura, PDF o lo que sea— NO la mires.**
+No uses la herramienta de visión, no la abras con `Read`, no la describas.
+Copia el archivo a la carpeta y corre `procesar.py`. El texto sale de
+`pdf_texto.py`, que hace OCR local con Tesseract.
+
+Esto pasó en la primera instalación real: el agente vio la imagen antes de
+correr la skill, y el usuario tuvo que corregirlo. Es fácil de hacer sin
+darse cuenta, porque mirar la foto parece el camino corto.
+
+| Lo que piensas | Por qué no |
+|---|---|
+| "Es más rápido si solo la veo" | El punto de la skill es no depender de visión. Un modelo sin ella queda fuera. |
+| "Solo miro para confirmar el OCR" | Entonces el resultado depende de tus ojos y deja de ser reproducible. |
+| "Es una foto, no un PDF; el OCR no aplica" | Sí aplica: `.jpg`/`.png` van por `ocr-imagen`. |
+| "El OCR salió sucio, mejor la leo" | Reporta lo ilegible y pregunta. Inventar un dato fiscal es peor que dejarlo vacío. |
+| "El usuario me la pegó en el chat" | Pide que la guarde como archivo y procésala. |
+
+La única excepción es una imagen que solo existe pegada en la conversación,
+sin archivo en disco: ahí dilo y pide el archivo.
 
 **Datos privados.** Son facturas reales. Todo corre localmente, sin red. No
 copies RFC, montos ni UUID al chat salvo que el usuario lo pida.
@@ -49,6 +65,10 @@ cd <skill>/scripts
 python procesar.py <carpeta-de-facturas> --excel <salida.xlsx>
 ```
 
+**Entra a las subcarpetas por defecto.** Si el usuario organiza por año
+(`entrantes/2025/`, `entrantes/2026/`), apunta a la carpeta padre y las toma
+todas. Con `--sin-recursion` se queda en un solo nivel.
+
 Esto ya deja hecho todo lo que tiene XML. Devuelve un JSON con los conteos.
 Re-ejecutarlo sobre la misma carpeta agrega **0 filas**: la clave es el UUID
 del Timbre Fiscal.
@@ -76,6 +96,10 @@ EOF
 **No inventes campos.** Si un dato no está en el texto, usa `null`. Una fila
 incompleta y marcada es útil; una fila inventada corrompe la contabilidad.
 
+**Y no des por bueno un RFC solo porque se lee entero.** Corre `verificar.py`
+después de insertar: comprueba el dígito verificador y delata los que el OCR
+leyó mal aunque parezcan correctos.
+
 ## Esquema de la fila
 
 ```json
@@ -87,9 +111,13 @@ incompleta y marcada es útil; una fila inventada corrompe la contabilidad.
   "impuestos_trasladados": 16.0, "impuestos_retenidos": 0.0,
   "moneda": "MXN", "metodo_pago": "PUE", "forma_pago": "Efectivo",
   "uso_cfdi": "G03 - Gastos en general", "categoria": "Servicios",
-  "estado": "OK", "_origen": "PDF", "_confianza": "revisar", "_ruta": "..."
+  "estado": "OK", "_origen": "PDF", "_confianza": "revisar"
 }
 ```
+
+**No escribas `_ruta` a mano.** En Windows la ruta lleva `\` y produce escapes
+inválidos que rompen el JSON. Si la quieres, cópiala tal cual de
+`pendientes.json`, que ya viene con barras normales.
 
 Ver `referencia/columnas.md` para el origen de cada columna en el CFDI.
 
@@ -126,6 +154,11 @@ python verificar.py <salida.xlsx>
 Reporta las filas que no cuadran (solo número de fila y diferencia, nunca los
 datos). Un descuadre en una fila `_origen: PDF` casi siempre es un monto mal
 leído. Sale con código 1 si encuentra alguno.
+
+También **valida el dígito verificador de los RFC**. Corre esto siempre después
+de capturar una factura por OCR: un RFC mal leído (`Z` como `2` es lo típico)
+no solo ensucia el dato, rompe la clave `rfc|fecha|importe` con la que se
+deduplican las filas sin UUID, y esa factura podría entrar dos veces.
 
 Para comprobar que la skill entera sigue funcionando tras un cambio:
 `python pruebas/correr.py` (usa facturas sintéticas, no datos reales).
