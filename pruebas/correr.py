@@ -63,6 +63,15 @@ def main():
 
         print("\nRuta PDF (sin vision)")
         check("detecta el PDF sin XML", len(huerfanos) == 1)
+        # El PDF de prueba tiene que llegar intacto. Si git lo trata como
+        # texto y le inyecta CR al clonar, los offsets del xref se rompen y
+        # pdf-inspector deja de abrirlo; pdfplumber si lo tolera, asi que sin
+        # esta comprobacion el flujo cae al respaldo y la suite sigue en
+        # verde con una fixture corrupta.
+        if huerfanos and pdf_texto._pi is not None:
+            check("la fixture PDF no llego corrupta",
+                  pdf_texto.clasificar(huerfanos[0]) is not None,
+                  "pdf-inspector no puede abrirla; revisa .gitattributes")
         if huerfanos:
             texto, meta = pdf_texto.extraer_texto(huerfanos[0])
             check("extrae texto plano", isinstance(texto, str) and len(texto) > 100)
